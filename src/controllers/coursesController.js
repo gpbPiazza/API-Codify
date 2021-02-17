@@ -77,21 +77,6 @@ class CoursesController {
     await Promise.all(promises);
   }
 
-  async editCourse(courseParams) {
-    const {
-      id, name, description, photo,
-    } = courseParams;
-    const course = await Course.findByPk(id);
-    if (!course) throw new NotFoundError('Course not found');
-
-    if (name) course.name = name;
-    if (description) course.description = description;
-    if (photo) course.photo = photo;
-
-    await course.save();
-    return course;
-  }
-
   async startCourse({ userId, courseId }) {
     const thisUserAlredyStartedCourse = await CourseUser.findOne({ where: { courseId, userId } });
     if (thisUserAlredyStartedCourse) throw new ConflictError();
@@ -100,12 +85,55 @@ class CoursesController {
   }
 
   async getAllCoursesStarted(userId) {
-    const userWithCourses = await User.findOne({
-      where: { id: userId },
-      include: [{ model: Course, attributes: ['id', 'name', 'description', 'photo'] }],
-    });
+    const userWithCourses = await User.findByPk(
+      userId, {
+        include: [{
+          model: Course,
+          attributes: ['id', 'name', 'description', 'photo'],
+          include: {
+            model: Chapter,
+            attributes: ['id', 'name'],
+            include: {
+              model: Topic,
+              attributes: ['id', 'name'],
+              include: [
+                {
+                  model: Theory,
+                  attributes: ['id', 'youtubeLink'],
+                },
+                {
+                  model: Exercise,
+                  attributes: ['id'],
+                },
+              ],
+            },
+          },
+        }],
+      },
+    );
 
     const { courses } = userWithCourses;
+
+    const arrayObjects = courses.map((course) => {
+      const theoryIdList = [];
+      const exerciseIdList = [];
+      course.chapters.forEach((chapter) => {
+        if (!chapter) throw new NotFoundError();
+        chapter.topics.forEach((topic) => {
+          if (!topic || !topic.theory || !topic.exercises) throw new NotFoundError();
+
+          theoryIdList.push(topic.theory.id);
+
+          topic.exercises.forEach((exercise) => {
+            exerciseIdList.push(exercise.id);
+          });
+        });
+      });
+      // const exercisesDone = await this._getExercisesDone(userId, exerciseIdList);
+      // const theoriesDone = await this._getTheoriesDone(userId, theoryIdList);
+    });
+
+    console.log(arrayObjects);
 
     return courses;
   }
@@ -117,16 +145,6 @@ class CoursesController {
     const courses = allCourses.filter((el) => !coursesStarted.some((f) => f.id === el.id));
 
     return courses;
-  }
-
-  async getLastCourseSeen(userId) {
-    const exerciseDone = await ExerciseDone.findAll({
-      limit: 1,
-      where: {
-        userId,
-      },
-      order: [['createdAt', 'DESC']],
-    });
   }
 }
 

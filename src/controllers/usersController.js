@@ -50,7 +50,7 @@ class UsersController {
     courseData.chapters.forEach((chapter) => {
       if (!chapter) throw new NotFoundError();
       chapter.topics.forEach((topic) => {
-        if (!topic || !topic.theory || !topic.theory || !topic.exercises) throw new NotFoundError();
+        if (!topic || !topic.theory || !topic.exercises) throw new NotFoundError();
 
         theoryIdList.push(topic.theory.id);
 
@@ -62,6 +62,8 @@ class UsersController {
 
     const exercisesDone = await this._getExercisesDone(userId, exerciseIdList);
     const theoriesDone = await this._getTheoriesDone(userId, theoryIdList);
+
+    console.log(exercisesDone);
 
     const allCourseTasks = [...theoryIdList, ...exerciseIdList];
     const allTasksDone = [...exercisesDone, ...theoriesDone];
@@ -120,14 +122,14 @@ class UsersController {
   }
 
   async _getExercisesDone(userId, exerciseIdList) {
-    const allUserExercisesDoneId = await ExerciseDone.findAll({ where: { userId } });
+    const allUserExercisesDoneId = await ExerciseDone.findAll({ where: { userId }, order: '"updatedAt" DESC' });
     const exercisesDone = allUserExercisesDoneId.filter((exercise) => exerciseIdList.find((id) => exercise.exerciseId === id));
 
     return exercisesDone;
   }
 
   async _getTheoriesDone(userId, theoryIdList) {
-    const allUserTheoriesDoneId = await TheoryDone.findAll({ where: { userId } });
+    const allUserTheoriesDoneId = await TheoryDone.findAll({ where: { userId }, order: '"updatedAt" DESC' });
     const theoriesDone = allUserTheoriesDoneId.filter((exercise) => theoryIdList.find((id) => exercise.theoryId === id));
 
     return theoriesDone;

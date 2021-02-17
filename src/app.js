@@ -15,7 +15,6 @@ const adminRouter = require('./routers/adminRouter');
 const NotFoundError = require('./errors/NotFoundError');
 const getQueriesMiddleware = require('./middlewares/getQueriesMiddleware');
 
-
 const app = express();
 app.use(cors());
 app.use(express.json());
